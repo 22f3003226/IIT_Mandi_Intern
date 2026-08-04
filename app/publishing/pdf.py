@@ -2,6 +2,19 @@ from fpdf import FPDF
 
 from app.schemas.publishing import TeacherKnowledgePackage
 
+# fpdf2's built-in Helvetica font only supports latin-1. LLM output routinely
+# uses "smart" typographic punctuation outside that range; map the common
+# ones to ASCII and fall back to dropping anything else rather than crashing.
+_UNICODE_TO_ASCII = str.maketrans({
+    "‘": "'", "’": "'", "“": '"', "”": '"',
+    "–": "-", "—": "-", "…": "...",
+})
+
+
+def _sanitize_for_pdf(text: str) -> str:
+    ascii_ish = text.translate(_UNICODE_TO_ASCII)
+    return ascii_ish.encode("latin-1", errors="replace").decode("latin-1")
+
 
 def _multi_cell(pdf: FPDF, h: int, text: str) -> None:
     """Wrap multi_cell to reset cursor to left margin before rendering.
@@ -10,7 +23,7 @@ def _multi_cell(pdf: FPDF, h: int, text: str) -> None:
     Without reset, subsequent multi_cell() calls compute zero/negative available width.
     """
     pdf.set_x(pdf.l_margin)
-    pdf.multi_cell(0, h, text)
+    pdf.multi_cell(0, h, _sanitize_for_pdf(text))
 
 
 def _new_pdf(title: str, tkp: TeacherKnowledgePackage) -> FPDF:

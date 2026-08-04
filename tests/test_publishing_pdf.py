@@ -46,3 +46,13 @@ def test_render_teacher_guide_pdf_produces_nonempty_bytes():
 def test_render_assessment_book_pdf_produces_nonempty_bytes():
     pdf_bytes = render_assessment_book_pdf(_tkp())
     assert pdf_bytes.startswith(b"%PDF")
+
+
+def test_render_teacher_guide_pdf_handles_smart_quotes_and_unicode():
+    tkp = _tkp()
+    tkp.teaching_plan.periods[0].content.teacher_script = (
+        "Newton's First Law says an object won't change motion unless a force acts "
+        "on it - here's a real-world example: a car's seatbelt → keeps you safe."
+    )
+    pdf_bytes = render_teacher_guide_pdf(tkp)
+    assert pdf_bytes.startswith(b"%PDF")
