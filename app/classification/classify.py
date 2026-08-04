@@ -17,9 +17,10 @@ def classify(parsed: ParsedDocument, client: Optional[OpenRouterClient] = None) 
 
     last_error: Optional[Exception] = None
     for attempt in range(MAX_RETRIES + 1):
-        prompt = user_prompt if attempt == 0 else (
-            user_prompt + "\n\nYour previous response was invalid. Return ONLY a valid JSON "
-            "object with keys: subject, grade, difficulty, topic, chapter, category, language."
+        prompt = user_prompt if last_error is None else (
+            user_prompt + f"\n\nYour previous response failed validation with this error:\n"
+            f"{last_error}\nFix it and return ONLY a valid JSON object with keys: subject, "
+            "grade, difficulty, topic, chapter, category, language."
         )
         try:
             raw = client.complete_json(settings.openrouter_model_classification, SYSTEM_PROMPT, prompt)

@@ -47,6 +47,12 @@ def test_source_ref_rejects_fully_empty_pointer():
         SourceRef(page=None, section=None)
 
 
+def test_concept_item_coerces_bare_section_string_into_source_ref():
+    item = ConceptItem(text="Newton's First Law", source_ref="Newton's First Law of Motion")
+    assert item.source_ref.section == "Newton's First Law of Motion"
+    assert item.source_ref.page is None
+
+
 def test_flatten_text_includes_page_marker():
     doc = ParsedDocument(
         metadata=DocumentMetadata(source_filename="x.txt", format="txt", page_count=1),

@@ -26,9 +26,10 @@ def judge_plan(
 
     last_error: Optional[Exception] = None
     for attempt in range(MAX_RETRIES + 1):
-        prompt = user_prompt if attempt == 0 else (
-            user_prompt + "\n\nYour previous response was invalid JSON or missing required "
-            "keys. Return ONLY a valid JSON object with the required structure."
+        prompt = user_prompt if last_error is None else (
+            user_prompt + f"\n\nYour previous response failed validation with this error:\n"
+            f"{last_error}\nFix the exact fields named above and return ONLY a valid JSON "
+            "object with the required structure."
         )
         try:
             raw = client.complete_json(settings.openrouter_model_validation, SYSTEM_PROMPT, prompt)

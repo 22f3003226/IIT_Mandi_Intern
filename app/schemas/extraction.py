@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class SourceRef(BaseModel):
@@ -17,6 +17,15 @@ class SourceRef(BaseModel):
 class ConceptItem(BaseModel):
     text: str
     source_ref: SourceRef
+
+    @field_validator("source_ref", mode="before")
+    @classmethod
+    def _coerce_bare_section_string(cls, value):
+        # models sometimes write the section heading directly instead of
+        # {"page": ..., "section": ...}
+        if isinstance(value, str):
+            return {"section": value}
+        return value
 
 
 class KnowledgeExtract(BaseModel):

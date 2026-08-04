@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.schemas.extraction import ConceptItem
 
@@ -25,6 +25,14 @@ class PeriodContent(BaseModel):
     homework: str
     mentor_moment: str
     grounded_notes: list[ConceptItem]
+
+    @field_validator("blackboard_notes", mode="before")
+    @classmethod
+    def _join_list_notes(cls, value):
+        # models often write blackboard notes as bullet points rather than one string
+        if isinstance(value, list):
+            return "\n".join(str(item) for item in value)
+        return value
 
 
 class Activity(BaseModel):

@@ -4,3 +4,7 @@ __pycache__/
 /storage/
 .env
 *.db
+.claude/
+.agents/
+skills-lock.json
+.superpowers/

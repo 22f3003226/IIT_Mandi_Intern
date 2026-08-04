@@ -40,6 +40,17 @@ def test_period_content_requires_grounded_notes():
     assert content.grounded_notes[0].source_ref.page == 3
 
 
+def test_period_content_coerces_list_blackboard_notes_to_string():
+    content = PeriodContent(
+        entry_ticket="Quick recap question", teacher_script="Explain inertia...",
+        blackboard_notes=["Inertia = resistance to change in motion", "F = m * a"],
+        checkpoint_questions=["What is inertia?"], exit_ticket="One thing you learned",
+        homework="Read next section", mentor_moment="Story about a bus stopping suddenly",
+        grounded_notes=[_concept_item()],
+    )
+    assert content.blackboard_notes == "Inertia = resistance to change in motion\nF = m * a"
+
+
 def test_activities_response_wraps_list():
     resp = ActivitiesResponse(activities=[
         Activity(type="demonstration", duration_min=10, materials=["ball", "table"],
