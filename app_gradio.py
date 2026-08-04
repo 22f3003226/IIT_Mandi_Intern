@@ -26,6 +26,20 @@ from app.schemas.document_knowledge import DocumentKnowledgeExtract
 from app.schemas.planning import PeriodPackage
 from app.validation.validate import validate
 
+try:
+    import spaces
+
+    @spaces.GPU
+    def _zerogpu_startup_probe() -> None:
+        """Unused. HF's ZeroGPU hardware refuses to boot a Space with zero
+        @spaces.GPU-decorated functions, even though this app never needs a
+        GPU (every stage here is a plain OpenRouter API call). Satisfies that
+        startup check without ever being called."""
+        return None
+
+except ImportError:
+    pass  # `spaces` is only present inside a Hugging Face Space runtime
+
 DOC_NATURE_HINTS = [
     "Not Sure",
     "Mostly Text",
