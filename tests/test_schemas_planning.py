@@ -67,6 +67,15 @@ def test_assessment_roundtrip():
     assert assessment.mcqs == ["Q1..."]
 
 
+def test_assessment_flattens_structured_answer_key_and_rubric():
+    assessment = Assessment(
+        mcqs=["Q1..."], short_answer=[], long_answer=[], numerical=[],
+        answer_key={"mcq": {"1": "C", "2": "A"}}, rubric={"mcq": {"correct": "1 point each"}},
+    )
+    assert assessment.answer_key == "mcq: 1: C\n2: A"
+    assert assessment.rubric == "mcq: correct: 1 point each"
+
+
 def test_gap_analysis_response_wraps_list():
     resp = GapAnalysisResponse(gap_analysis=[
         GapAnalysisItem(
