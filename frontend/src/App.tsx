@@ -10,13 +10,15 @@ const queryClient = new QueryClient();
 
 type Stage = "upload" | "parsing" | "planning" | "publishing" | "result" | "error";
 
+const initialParams = new URLSearchParams(window.location.search);
+const initialPublishJobId = initialParams.get("publish");
+const initialDocumentJobId = initialPublishJobId ? null : initialParams.get("job");
+
 function Wizard() {
-  const [stage, setStage] = useState<Stage>("upload");
-  const [documentJobId, setDocumentJobId] = useState<string | null>(
-    new URLSearchParams(window.location.search).get("job")
-  );
+  const [stage, setStage] = useState<Stage>(initialPublishJobId ? "publishing" : "upload");
+  const [documentJobId, setDocumentJobId] = useState<string | null>(initialDocumentJobId);
   const [planJobId, setPlanJobId] = useState<string | null>(null);
-  const [publishJobId, setPublishJobId] = useState<string | null>(null);
+  const [publishJobId, setPublishJobId] = useState<string | null>(initialPublishJobId);
   const [error, setError] = useState<string | null>(null);
 
   const documentEvent = useJobStream(stage === "parsing" ? documentJobId : null);
@@ -59,7 +61,7 @@ function Wizard() {
       createPublish(planJobId)
         .then((job) => {
           setPublishJobId(job.id);
-          window.history.replaceState(null, "", `?job=${job.id}`);
+          window.history.replaceState(null, "", `?publish=${job.id}`);
           setStage("publishing");
         })
         .catch((err) => {

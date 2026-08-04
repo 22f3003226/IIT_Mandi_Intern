@@ -10,4 +10,10 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/documents': 'http://localhost:8000',
+      '/jobs': 'http://localhost:8000',
+    },
+  },
 })

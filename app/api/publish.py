@@ -69,8 +69,11 @@ async def get_publish(job_id: str):
         raise HTTPException(status_code=400, detail="Job is not a publish job")
     if job["status"] != "completed":
         raise HTTPException(status_code=400, detail="Publish job is not completed")
-    raw = await asyncio.to_thread(Path(job["result_path"]).read_text)
-    return json.loads(raw)
+    try:
+        raw = await asyncio.to_thread(Path(job["result_path"]).read_text)
+        return json.loads(raw)
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Publish job result is unreadable or invalid") from exc
 
 
 @router.get("/jobs/{job_id}/publish/pdf/{kind}")

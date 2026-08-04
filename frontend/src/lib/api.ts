@@ -1,4 +1,7 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+// Empty string means same-origin relative requests, which is correct in
+// production (Docker serves the frontend and API from one origin). Local dev
+// uses the Vite proxy (see vite.config.ts) to route these to :8000 instead.
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export interface JobStatus {
   id: string;

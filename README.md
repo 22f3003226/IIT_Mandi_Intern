@@ -1,4 +1,4 @@
-# Teacher AI Platform — Phase 1: Document Intelligence & Knowledge Extraction
+# Teacher AI Platform
 
 Parses an uploaded document (PDF/DOCX/PPTX/TXT), classifies it educationally, and
 extracts a structured knowledge representation, exposed via a job-based upload API
@@ -43,27 +43,33 @@ dynamically from the source material rather than assuming a fixed count (FAQ
 analysis — grounds its prompts in the Phase 1 `KnowledgeExtract` rather than
 re-deriving facts from the raw document (FAQ #4).
 
-## Architecture
-
-```
-Client -> POST /documents -> Job created (SQLite) -> background pipeline:
-  parse (format-routed) -> classify (OpenRouter) -> extract (OpenRouter)
-  -> DocumentKnowledgeExtract.json written to storage/files/{job_id}/
-Client polls GET /jobs/{id} or streams GET /jobs/{id}/stream for progress.
-```
-
 ## Testing
 
 `uv run pytest -v` — no live LLM calls; classification/extraction are tested against
 fake clients. `pytest -m live` markers are not yet defined in Phase 1 (all tests are
 offline).
 
-## Scope
+## Phase 3: Validation & TKP Publishing
 
-Phase 1 covers document parsing, classification, and knowledge extraction. Phase 2
-(implemented above) adds period planning, content/activity/assessment generation, and
-gap analysis on top of the Phase 1 knowledge extract. Validation and TKP publishing
-remain later phases (see `docs/superpowers/specs/`).
+- `POST /jobs/{plan_job_id}/publish` — `plan_job_id` is a completed Phase 2 plan
+  job. Starts the Stage 9-10 pipeline (rule-based + LLM-judge validation,
+  Teacher Knowledge Package assembly, PDF rendering) as a new background job
+  and returns that new publish job's status
+  (`{"id", "status", "stage", "progress", "error", "result_path"}`).
+- `GET /jobs/{id}/publish` — `id` is a publish job. Returns the
+  `TeacherKnowledgePackage.json` body once the publish job's `status` is
+  `completed`; `400` if `id` is not a publish job, isn't completed, or the
+  result is unreadable.
+- `GET /jobs/{id}/publish/pdf/{kind}` — `id` is a completed publish job,
+  `kind` is one of `lesson-plan`, `teacher-guide`, `assessment-book`. Streams
+  the corresponding rendered PDF; `400` for an unknown `kind`, `404` if the
+  job or PDF file isn't found.
+
+Validation failures (rule-based or LLM-judge issues, including `critical`
+severity) are recorded in the package's `validation_report` but never fail
+the publish job itself — the job still completes with a full
+`TeacherKnowledgePackage.json` and all three PDFs, with `passed=False`
+surfaced for the caller to act on.
 
 ## Known limitations
 
@@ -75,3 +81,56 @@ remain later phases (see `docs/superpowers/specs/`).
   prompt builders (`app/planning/prompts.py`, `app/content/prompts.py`,
   `app/activities/prompts.py`, `app/assessment/prompts.py`, `app/gaps/prompts.py`), so
   very long knowledge extracts or period content may be truncated before reaching the LLM.
+
+## Architecture
+
+```mermaid
+graph LR
+  U[Client / Frontend] -->|POST /documents| A[FastAPI]
+  A --> P1[Stage 1-3: Document Intelligence]
+  P1 -->|POST /jobs/id/plan| P2[Stage 4-8: Planning & Generation]
+  P2 -->|POST /jobs/id/publish| P3[Stage 9-10: Validation & Publishing]
+  P3 --> DB[(SQLite JobManager)]
+  P3 --> FS[(File storage: JSON + PDFs)]
+  P1 & P2 & P3 -.->|OpenRouter LLM calls| LLM[(OpenRouter)]
+```
+
+Each stage is a Python package (`app/classification/`, `app/extraction/`,
+`app/planning/`, `app/content/`, `app/activities/`, `app/assessment/`,
+`app/gaps/`, `app/validation/`, `app/publishing/`) sharing one pattern:
+an LLM call with `MAX_RETRIES=2` and a schema-repair follow-up prompt on
+invalid JSON. Jobs are chained via `job_type`/`parent_job_id` in
+`app/jobs/manager.py` (`document` → `plan` → `publish`); each stage
+reports progress into SQLite, streamed to the client over
+`GET /jobs/{id}/stream` (SSE).
+
+Orchestration pattern: custom sequential pipeline functions
+(`app/jobs/pipeline*.py`), not a third-party agent framework — chosen for
+transparency and testability (every stage is independently mockable in
+`tests/`).
+
+## Local setup
+
+```bash
+uv sync
+cp .env.example .env  # set OPENROUTER_API_KEY
+uv run uvicorn app.main:app --reload
+
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+## Deployment (Hugging Face Spaces)
+
+1. Create a new Space, SDK = **Docker**.
+2. Push this repo to the Space's git remote (`git push hf main`).
+3. Set `OPENROUTER_API_KEY` as a Space secret (Settings → Repository secrets).
+4. The Space builds `Dockerfile` and serves on port 7860 automatically.
+
+The `Dockerfile` multi-stage builds the frontend (`npm ci && npm run build`
+in a `node:20-alpine` stage) and copies the resulting `frontend/dist/` into
+the `python:3.11-slim` runtime image alongside the backend, so a single
+container serves the wizard UI at `/` and the API at its existing paths on
+port 7860.
