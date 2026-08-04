@@ -1,0 +1,12 @@
+from fastapi import FastAPI
+
+from app.api import documents, jobs
+
+app = FastAPI(title="Teacher AI Platform - Phase 1")
+app.include_router(documents.router)
+app.include_router(jobs.router)
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
