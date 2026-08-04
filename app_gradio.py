@@ -131,7 +131,11 @@ def handle_upload(file, doc_nature_hint, progress=gr.Progress()):
         raise gr.Error(f"Pipeline failed: {exc}") from exc
 
 
-with gr.Blocks(title="Teacher AI Platform") as demo:
+CSS = """
+.gradio-container { height: auto !important; min-height: 100vh !important; }
+"""
+
+with gr.Blocks(title="Teacher AI Platform", css=CSS, fill_height=False) as demo:
     gr.Markdown(
         "# Teacher AI Platform\n"
         "Upload a chapter (PDF, DOCX, PPTX, or TXT) and get a full Teacher "
