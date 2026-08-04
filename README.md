@@ -5,6 +5,7 @@ colorFrom: gray
 colorTo: blue
 sdk: gradio
 sdk_version: 6.22.0
+python_version: "3.11"
 app_file: app_gradio.py
 pinned: false
 license: mit
