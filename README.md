@@ -1,3 +1,15 @@
+---
+title: Teacher AI Platform
+emoji: 📚
+colorFrom: gray
+colorTo: blue
+sdk: gradio
+sdk_version: 6.22.0
+app_file: app_gradio.py
+pinned: false
+license: mit
+---
+
 # Teacher AI Platform
 
 An AI system that turns a raw educational document (a textbook chapter, a
@@ -223,19 +235,38 @@ and API contracts.
 
 ## Deployment (Hugging Face Spaces)
 
-1. Create a new Space with SDK set to **Docker**.
-2. Push this repo to the Space's git remote: `git push hf main`.
-3. Set `OPENROUTER_API_KEY` (and any other env vars you want to override)
-   as a Space secret under Settings → Repository secrets.
-4. The Space builds the included `Dockerfile` and starts serving on port
-   7860 automatically, no further configuration needed.
+The live demo runs on the **Gradio** SDK, not Docker. Docker Spaces on
+Hugging Face require a PRO subscription even on the free CPU tier;
+Gradio Spaces don't. `app_gradio.py` at the repo root wraps the same
+pipeline (`app/classification/`, `app/extraction/`, `app/planning/`, and
+so on) as a single-request Gradio demo: upload a document, get back a
+summary, the `TeacherKnowledgePackage.json`, and the three PDFs. It calls
+the pipeline stage functions directly and synchronously, skipping the job
+queue and SSE streaming that the FastAPI app uses, since a demo Space only
+needs to handle one request at a time.
 
-The `Dockerfile` is a two-stage build: a `node:20-alpine` stage compiles
-the frontend (`npm ci && npm run build`), and its `frontend/dist/` output
-gets copied into a `python:3.11-slim` runtime image alongside the backend.
-One container ends up serving the wizard UI at `/` and the API at its
-existing paths, both on port 7860, and runs as a non-root user since HF
-Spaces containers run as UID 1000, not root.
+To deploy:
+
+```bash
+hf auth login                                   # your HF token
+hf repo create <space-name> --type space --sdk gradio
+git remote add hf https://huggingface.co/spaces/<your-username>/<space-name>
+git push hf main
+hf spaces secrets set OPENROUTER_API_KEY <your-key> <your-username>/<space-name>
+```
+
+The Space picks up `requirements.txt` (pip, not `uv`, since that's what
+the Gradio SDK expects) and the `sdk`/`app_file` fields in this README's
+front matter, and starts serving automatically.
+
+The FastAPI + React app (everything described above) still works exactly
+as documented if you'd rather self-host the full version, with the job
+queue, streaming progress, and the wizard UI, on any Docker-capable host:
+Render, Fly.io, a VPS, or a paid HF Space. The included `Dockerfile` is a
+two-stage build (a `node:20-alpine` stage compiles the frontend, its
+`frontend/dist/` output gets copied into a `python:3.11-slim` runtime
+image alongside the backend) that serves both the wizard UI and the API
+from one container on port 7860, running as a non-root user.
 
 ## Project structure
 
