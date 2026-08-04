@@ -33,3 +33,11 @@ def test_save_plan_result_json_writes_teaching_plan_file(tmp_path):
     path = save_plan_result_json(str(tmp_path), "job-1", '{"job_id": "job-1"}')
     assert Path(path).name == "TeachingPlan.json"
     assert Path(path).read_text() == '{"job_id": "job-1"}'
+
+
+def test_save_publish_result_json_writes_file(tmp_path):
+    from app.storage.files import save_publish_result_json
+
+    path = save_publish_result_json(str(tmp_path), "job-1", '{"job_id": "job-1"}')
+    assert Path(path).name == "TeacherKnowledgePackage.json"
+    assert Path(path).read_text() == '{"job_id": "job-1"}'

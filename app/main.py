@@ -1,11 +1,12 @@
 from fastapi import FastAPI
 
-from app.api import documents, jobs, plans
+from app.api import documents, jobs, plans, publish
 
 app = FastAPI(title="Teacher AI Platform")
 app.include_router(documents.router)
 app.include_router(jobs.router)
 app.include_router(plans.router)
+app.include_router(publish.router)
 
 
 @app.get("/health")
