@@ -14,7 +14,9 @@ CREATE TABLE IF NOT EXISTS jobs (
     result_path TEXT,
     error TEXT,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    job_type TEXT NOT NULL DEFAULT 'document',
+    parent_job_id TEXT
 );
 """
 
@@ -25,20 +27,32 @@ class JobManager:
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as conn:
             conn.execute(SCHEMA)
+            cols = {r["name"] for r in conn.execute("PRAGMA table_info(jobs)")}
+            if "job_type" not in cols:
+                conn.execute("ALTER TABLE jobs ADD COLUMN job_type TEXT NOT NULL DEFAULT 'document'")
+            if "parent_job_id" not in cols:
+                conn.execute("ALTER TABLE jobs ADD COLUMN parent_job_id TEXT")
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         return conn
 
-    def create_job(self, file_path: str, job_id: Optional[str] = None) -> str:
+    def create_job(
+        self,
+        file_path: str,
+        job_id: Optional[str] = None,
+        job_type: str = "document",
+        parent_job_id: Optional[str] = None,
+    ) -> str:
         job_id = job_id or str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
         with self._connect() as conn:
             conn.execute(
                 "INSERT INTO jobs (id, status, stage, progress, file_path, result_path, "
-                "error, created_at, updated_at) VALUES (?, 'queued', NULL, 0, ?, NULL, NULL, ?, ?)",
-                (job_id, file_path, now, now),
+                "error, created_at, updated_at, job_type, parent_job_id) "
+                "VALUES (?, 'queued', NULL, 0, ?, NULL, NULL, ?, ?, ?, ?)",
+                (job_id, file_path, now, now, job_type, parent_job_id),
             )
         return job_id
 

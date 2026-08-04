@@ -6,5 +6,8 @@ with a JSON object with exactly these keys: subject, grade, difficulty, topic, c
 category, language."""
 
 
+MAX_DOCUMENT_CHARS = 8000
+
+
 def build_user_prompt(document_text: str) -> str:
-    return f"Document content:\n\n{document_text[:8000]}"
+    return f"Document content:\n\n{document_text[:MAX_DOCUMENT_CHARS]}"

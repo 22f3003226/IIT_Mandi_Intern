@@ -40,4 +40,4 @@ class ParsedDocument(BaseModel):
     equations: list[EquationRef] = []
 
     def flatten_text(self) -> str:
-        return "\n\n".join(f"{s.heading or ''}\n{s.text}" for s in self.sections)
+        return "\n\n".join(f"[page {s.page}] {s.heading or ''}\n{s.text}" for s in self.sections)

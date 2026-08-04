@@ -23,6 +23,26 @@ with progress streaming.
 - `GET /jobs/{job_id}/stream` — Server-Sent Events stream of `{"stage", "progress",
   "status"}` until the job reaches `completed` or `failed`.
 
+## Phase 2: Pedagogical Planning & Generation
+
+- `POST /jobs/{id}/plan` — `id` is a completed Phase 1 document job. Starts the
+  Stage 4-8 pipeline (period planning, content, activities, assessment, gap
+  analysis) as a new background job and returns that new plan job's status
+  (`{"id", "status", "stage", "progress", "error", "result_path"}`).
+- `GET /jobs/{id}/plan` — `id` is a plan job. Returns the `TeachingPlan.json`
+  body once the plan job's `status` is `completed`; `400` if `id` is not a plan
+  job or isn't completed yet.
+- `GET /jobs/{id}/result` — generic result fetch that works for both document
+  jobs (`DocumentKnowledgeExtract.json`) and plan jobs (`TeachingPlan.json`);
+  returns whatever JSON is at the job's `result_path` once `status` is
+  `completed`.
+
+Stage 4 (period planning) decides the number and duration of periods
+dynamically from the source material rather than assuming a fixed count (FAQ
+#3), and every downstream stage — content, activities, assessment, and gap
+analysis — grounds its prompts in the Phase 1 `KnowledgeExtract` rather than
+re-deriving facts from the raw document (FAQ #4).
+
 ## Architecture
 
 ```
@@ -40,6 +60,18 @@ offline).
 
 ## Scope
 
-This is Phase 1 only: document parsing, classification, and knowledge extraction.
-Teaching plan/content/activity/assessment generation, validation, and TKP publishing
-are later phases (see `docs/superpowers/specs/`).
+Phase 1 covers document parsing, classification, and knowledge extraction. Phase 2
+(implemented above) adds period planning, content/activity/assessment generation, and
+gap analysis on top of the Phase 1 knowledge extract. Validation and TKP publishing
+remain later phases (see `docs/superpowers/specs/`).
+
+## Known limitations
+
+- Document text sent to the classification and extraction LLM calls is truncated to
+  `MAX_DOCUMENT_CHARS` (8000 characters, see `app/classification/prompts.py` and
+  `app/extraction/prompts.py`) per call. Very long chapters may have content beyond
+  this limit excluded from the generated knowledge extract.
+- The same 8000-character truncation (`MAX_CONTEXT_CHARS`) applies to the five Phase 2
+  prompt builders (`app/planning/prompts.py`, `app/content/prompts.py`,
+  `app/activities/prompts.py`, `app/assessment/prompts.py`, `app/gaps/prompts.py`), so
+  very long knowledge extracts or period content may be truncated before reaching the LLM.

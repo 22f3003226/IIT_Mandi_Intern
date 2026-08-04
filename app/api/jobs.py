@@ -1,5 +1,6 @@
 import asyncio
 import json
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -23,6 +24,17 @@ async def get_job(job_id: str) -> JobStatusResponse:
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return _to_response(job)
+
+
+@router.get("/jobs/{job_id}/result")
+async def get_job_result(job_id: str):
+    job = deps.job_manager.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job["status"] != "completed" or not job["result_path"]:
+        raise HTTPException(status_code=400, detail="Job result not available")
+    raw = await asyncio.to_thread(Path(job["result_path"]).read_text)
+    return json.loads(raw)
 
 
 @router.get("/jobs/{job_id}/stream")

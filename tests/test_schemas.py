@@ -1,3 +1,6 @@
+import pytest
+from pydantic import ValidationError
+
 from app.schemas.classification import ClassificationResult
 from app.schemas.document_knowledge import DocumentKnowledgeExtract
 from app.schemas.extraction import ConceptItem, KnowledgeExtract, SourceRef
@@ -37,3 +40,16 @@ def test_document_knowledge_extract_round_trips_json():
     restored = DocumentKnowledgeExtract.model_validate_json(raw)
     assert restored.classification.subject == "Physics"
     assert restored.knowledge.learning_objectives[0].text == "Understand inertia"
+
+
+def test_source_ref_rejects_fully_empty_pointer():
+    with pytest.raises(ValidationError):
+        SourceRef(page=None, section=None)
+
+
+def test_flatten_text_includes_page_marker():
+    doc = ParsedDocument(
+        metadata=DocumentMetadata(source_filename="x.txt", format="txt", page_count=1),
+        sections=[Section(heading="Intro", text="Body.", page=3)],
+    )
+    assert "[page 3]" in doc.flatten_text()

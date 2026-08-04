@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import Optional
 
 from app.classification.classify import classify
@@ -7,6 +8,8 @@ from app.jobs.manager import JobManager
 from app.parsers.router import route_and_parse
 from app.schemas.document_knowledge import DocumentKnowledgeExtract
 from app.storage.files import save_result_json
+
+logger = logging.getLogger(__name__)
 
 
 async def run_pipeline(
@@ -34,4 +37,5 @@ async def run_pipeline(
 
         job_manager.update_job(job_id, status="completed", stage="done", progress=100, result_path=result_path)
     except Exception as exc:
+        logger.exception("Pipeline failed for job %s", job_id)
         job_manager.update_job(job_id, status="failed", error=str(exc))
